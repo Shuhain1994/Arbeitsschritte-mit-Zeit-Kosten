@@ -1,40 +1,56 @@
-import numpy as np
 import geatpy as ea
-import matplotlib.pyplot as plt
 from MyProblem import MyProblem
+import matplotlib.pyplot as plt
+import numpy as np
 
 if __name__ == '__main__':
     problem = MyProblem()
-    Encoding = 'P'
-    NIND = 50
-    Field = ea.crtfld(Encoding, problem.varTypes, problem.ranges, problem.borders)
+    Encoding = 'BG'
+    NIND = 25
+    Field = ea.crtfld(Encoding, problem.varTypes, problem.ranges, problem.borders) #
     population = ea.Population(Encoding, Field, NIND)
-    myAlgorithm = ea.soea_SEGA_templet(problem, population) #
-    myAlgorithm.MAXGEN = 100
-    myAlgorithm.mutOper.Pm = 0.5
-    myAlgorithm.drawing = 1
-    [population, obj_trace, var_trace] = myAlgorithm.run()
-    population.save()
+    """===============================Algorithm parameter settings============================="""
+    myAlgorithm = ea.moea_NSGA3_templet(problem, population)
+    myAlgorithm.MAXGEN = 25
+    myAlgorithm.drawing = 0
+    """==========================Call algorithm template for population evolution======================="""
+    NDSet = myAlgorithm.run()
+    NDSet.save()
+    # output
+    print ( 'Seconds: %s' % (myAlgorithm.passTime) )
+    print ( 'Non-dominated individuals：%s ' % (NDSet.sizes) )
+    print ( 'Decision variable value：%s ' % (NDSet.Phen) )
+    print ( 'Decision target value：%s ' % (NDSet.ObjV) )
 
-    best_gen = np.argmin(problem.maxormins * obj_trace[:, 1])
-    best_ObjV = np.min(obj_trace[:, 1])
-    print('Kürzeste Entfernung：%s'%(best_ObjV))
-    print('Beste Route：')
-    best_journey = np.hstack([0, var_trace[best_gen, :], 0])
-    for i in range(len(best_journey)):
-        print(chr(int(best_journey[i]) + 65), end = ' ')
-    print()
-    print('Anzahl der effektiven Evolutionen：%s'%(obj_trace.shape[0]))
-    print('Die beste Generation ist die %s Generation'%(best_gen + 1))
-    print('Anzahl der Bewertungen：%s'%(myAlgorithm.evalsNum))
-    print('Zeitaufwand %s sek'%(myAlgorithm.passTime))
+fig, axs = plt.subplots (3,1)
 
-    plt.figure()
-    plt.plot(problem.places[best_journey.astype(int), 0], problem.places[best_journey.astype(int), 1], c = 'black')
-    plt.plot(problem.places[best_journey.astype(int), 0], problem.places[best_journey.astype(int), 1], 'o', c = 'black')
-    for i in range(len(best_journey)):
-        plt.text(problem.places[int(best_journey[i]), 0], problem.places[int(best_journey[i]), 1], chr(int(best_journey[i]) + 65), fontsize=20)
-    plt.grid(True)
-    plt.xlabel('x-Achse')
-    plt.ylabel('y-Achse')
-    plt.savefig('roadmap.svg', dpi=600, bbox_inches='tight')
+x = np.arange(0,8)
+y1 = NDSet.Phen[-1,:]
+
+y2 = y1.copy()
+y2[y1==0]=2
+y2[y1==1]=3
+y2[y1==2]=4
+
+y3 =y2.copy()
+y3[y2==3]=2
+y3[y2==2]=3
+
+
+axs[2].step(x, y3, where='post', color='red')
+axs[2].set_title('Kosten für jeden Schritt', size= 14)
+axs[2].grid(axis='x', color='0.95')
+axs[2].plot(x, y3, 'o--', color='grey', alpha=0.3)
+
+axs[1].step(x, y2, where='post', color='blue')
+axs[1].set_title('Zeit für jeden Schritt', size= 14)
+axs[1].grid(axis='x', color='0.95')
+axs[1].plot(x, y2, 'o--', color='grey', alpha=0.3)
+
+axs[0].step(x, y1, where='post', color='orange')
+axs[0].set_title('Fertigungsschritte', size= 14)
+axs[0].grid(axis='x', color='0.95')
+axs[0].plot(x, y1, 'o--', color='grey', alpha=0.3)
+
+fig.tight_layout()
+plt.show()
